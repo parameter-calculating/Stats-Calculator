@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Overall Rating Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #0d1220;
+  --surface: #151c31;
+  --surface-2: #1c2540;
+  --line: #2a3556;
+  --fg: #edf0fa;
+  --muted: #97a2c4;
+  --accent: #6f9bff;
+  --accent-ink: #0b1226;
+  --good: #46d39a;
+  --bad: #ff7a8a;
+  --rank-s: #f6c244;
+  --rank-a: #ff8d6b;
+  --rank-b: #4fd1c5;
+  --rank-c: #7aa2ff;
+  --rank-d: #8b94b3;
+  --rank-ink: #101528;
+  --font-display: "Prompt", "Sarabun", system-ui, sans-serif;
+  --font-body: "Sarabun", "Prompt", system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef1f8; --surface: #ffffff; --surface-2: #f2f5fc; --line: #d5dcee;
+    --fg: #121a33; --muted: #566082; --accent: #2f5fe0; --accent-ink: #ffffff;
+    --good: #12875c; --bad: #c8334a;
+    --rank-s: #d99a0b; --rank-a: #e0603a; --rank-b: #0f9b8e; --rank-c: #3a62d6; --rank-d: #68718f;
+    --rank-ink: #ffffff;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eef1f8; --surface: #ffffff; --surface-2: #f2f5fc; --line: #d5dcee;
+  --fg: #121a33; --muted: #566082; --accent: #2f5fe0; --accent-ink: #ffffff;
+  --good: #12875c; --bad: #c8334a;
+  --rank-s: #d99a0b; --rank-a: #e0603a; --rank-b: #0f9b8e; --rank-c: #3a62d6; --rank-d: #68718f;
+  --rank-ink: #ffffff;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; min-width: 0;
+  grid-template-areas: "head" "summary" "inputs" "breakdown"; }
+@media (min-width: 900px) {
+  .wrap { grid-template-columns: minmax(340px, 420px) 1fr; gap: 20px;
+    grid-template-areas: "head head" "inputs summary" "inputs breakdown"; align-items: start; }
+}
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+.head { grid-area: head; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.eyebrow { font-family: var(--font-display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+h1 { font-size: clamp(26px, 5vw, 36px); line-height: 1.15; font-weight: 700; margin-top: 4px; }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: none; }
+.lang button { background: transparent; color: var(--muted); border: 0; padding: 6px 12px; font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+
+.summary { grid-area: summary; display: grid; gap: 14px; }
+.sum-top { display: flex; align-items: center; gap: 18px; }
+.rank-badge { width: 92px; height: 92px; border-radius: 22px; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 56px; line-height: 1;
+  background: var(--rank-color, var(--rank-d)); color: var(--rank-ink); flex: none; }
+.ovr-label { font-family: var(--font-display); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.ovr-num { font-family: var(--font-display); font-weight: 700; font-size: clamp(46px, 11vw, 68px); line-height: 1; font-variant-numeric: tabular-nums; }
+.next { color: var(--muted); font-size: 14px; margin: 0; }
+.next b { color: var(--fg); font-weight: 600; }
+.ladder { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.ladder div { border: 1px solid var(--line); border-radius: 10px; padding: 6px 2px; text-align: center; background: var(--surface-2); color: var(--muted); }
+.ladder strong { display: block; font-family: var(--font-display); font-size: 20px; line-height: 1.1; }
+.ladder span { font-size: 12px; font-variant-numeric: tabular-nums; }
+.ladder .on { background: var(--c); border-color: var(--c); color: var(--rank-ink); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat { background: var(--surface-2); border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0; }
+.stat span { display: block; font-size: 12px; color: var(--muted); }
+.stat b { font-family: var(--font-display); font-size: 17px; font-variant-numeric: tabular-nums; }
+
+.inputs { grid-area: inputs; display: grid; gap: 4px; }
+.inputs-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.inputs-head h2 { font-size: 18px; }
+.btns { display: flex; gap: 8px; }
+button { font: inherit; cursor: pointer; }
+.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 5px 12px; font-size: 14px; }
+.ghost:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); align-items: center; }
+.row .name { min-width: 0; }
+.abbr { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .04em; }
+.th { color: var(--muted); font-size: 14px; margin-left: 6px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.chip { font-size: 12px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip.grade { color: var(--fg); background: var(--surface-2); }
+.chip.use { color: var(--accent); border-color: var(--accent); }
+.field { display: flex; gap: 6px; align-items: stretch; }
+.field input { width: 66px; text-align: center; font-family: var(--font-display); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums;
+  background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 5px 4px; -moz-appearance: textfield; }
+.field input::-webkit-outer-spin-button, .field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.field select { width: 44px; background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; font-size: 14px; padding: 0 2px; }
+input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 0; }
+
+.breakdown { grid-area: breakdown; display: grid; gap: 12px; }
+.step { display: grid; gap: 8px; padding: 14px 18px; }
+.step h3 { font-size: 16px; display: flex; gap: 10px; align-items: center; }
+.tag { font-family: var(--font-display); font-size: 12px; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 0 8px; font-weight: 600; }
+.val { margin-left: auto; font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.line { margin: 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.line small { color: var(--muted); font-size: 13px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 500; color: var(--muted); font-size: 12px; }
+td.num, th.num { text-align: right; }
+tr.skip td { color: var(--muted); }
+.checks { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.checks li { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: baseline; font-size: 15px; }
+.mark { font-family: var(--font-display); font-weight: 700; }
+.checks .amt { font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 14px; }
+.checks small { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) {
+  .rank-badge { transition: background .25s; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="eyebrow">Player Overall Rating</div>
+      <h1 id="title">คำนวณ Overall Rating</h1>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" id="l-th" aria-pressed="true">TH</button>
+      <button type="button" id="l-en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <section class="card summary" aria-live="polite">
+    <div class="sum-top">
+      <div class="rank-badge" id="badge" aria-label="Rank">–</div>
+      <div>
+        <div class="ovr-label">Overall</div>
+        <div class="ovr-num" id="ovr">0.000</div>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="ladder" id="ladder"></div>
+    <p class="next" id="next"></p>
+  </section>
+
+  <section class="card inputs">
+    <div class="inputs-head">
+      <h2 id="enter">กรอกค่า (0–99)</h2>
+      <div class="btns">
+        <button type="button" class="ghost" id="ex">ตัวอย่าง</button>
+        <button type="button" class="ghost" id="clr">ล้าง</button>
+      </div>
+    </div>
+    <div id="rows"></div>
+  </section>
+
+  <section class="breakdown" id="breakdown"></section>
+</div>
+
+<script>
+(function () {
+  var I18N = {
+    th: {
+      title: "คำนวณ Overall Rating", enter: "กรอกค่า (0–99)", example: "ตัวอย่าง", clear: "ล้าง", pick: "เลือกค่า",
+      top: "แรงค์สูงสุดแล้ว",
+      more: function (g, r) { return "อีก <b>" + g + "</b> ถึงแรงค์ <b>" + r + "</b>"; },
+      cScore: "คะแนน", cGrade: "เกรด", cAdj: "ค่าปรับ", usedInit: "ใช้ใน Initial",
+      phyHigh: function (v, g, x) { return "PHY <b>" + v + "</b> (" + g + ") ระดับ A2 ขึ้นไป คิดตาม Grade Adjustment ปกติ <b>" + x + "</b>"; },
+      phyNone: "ต่ำกว่า 50 ยังไม่มีค่า Penalty",
+      phyLow: function (v, g, x) { return "PHY <b>" + v + "</b> (" + g + ") ค่า Penalty <b>" + x + "</b>"; },
+      bonusRule: function (n) { return "มี 2 ค่าที่ ≥ 96 <small>(ตอนนี้มี " + n + ")</small>"; },
+      names: { OFF: "เกมรุก", DEF: "เกมรับ", PAS: "ส่งบอล", DRI: "เลี้ยงบอล", SHO: "ยิง", SPE: "ความเร็ว", PHY: "ร่างกาย" }
+    },
+    en: {
+      title: "Overall Rating Calculator", enter: "Enter stats (0–99)", example: "Example", clear: "Clear", pick: "Pick value",
+      top: "Top rank reached",
+      more: function (g, r) { return "<b>" + g + "</b> more to reach rank <b>" + r + "</b>"; },
+      cScore: "Score", cGrade: "Grade", cAdj: "Adjust", usedInit: "Used in Initial",
+      phyHigh: function (v, g, x) { return "PHY <b>" + v + "</b> (" + g + ") is A2 or above: normal Grade Adjustment <b>" + x + "</b>"; },
+      phyNone: "Below 50: no penalty defined",
+      phyLow: function (v, g, x) { return "PHY <b>" + v + "</b> (" + g + ") penalty <b>" + x + "</b>"; },
+      bonusRule: function (n) { return "2 stats at ≥ 96 <small>(now " + n + ")</small>"; },
+      names: { OFF: "Offense", DEF: "Defense", PAS: "Pass", DRI: "Dribble", SHO: "Shoot", SPE: "Speed", PHY: "Physical" }
+    }
+  };
+  var lang = "en";
+  try { var saved = localStorage.getItem("ovr-lang"); if (saved === "th" || saved === "en") lang = saved; else if (/^th/i.test(navigator.language || "")) lang = "th"; } catch (e) { if (/^th/i.test(navigator.language || "")) lang = "th"; }
+  function T() { return I18N[lang]; }
+
+  var PARAMS = ["OFF", "DEF", "PAS", "DRI", "SHO", "SPE", "PHY"];
+  var MAIN = ["OFF", "DEF", "PAS", "DRI", "SHO", "SPE"];
+  var GRADES = [
+    [95, "S1", 0.75], [90, "S2", 0.5], [85, "A1", 0.25], [80, "A2", 0.125],
+    [75, "B1", -1.25], [70, "B2", -1.75], [65, "C1", -2.25], [60, "C2", -2.5],
+    [55, "D1", -2.75], [50, "D2", -3.0]
+  ];
+  var PHY_PEN = [[75, -1.25], [70, -1.75], [65, -2.25], [60, -2.5], [55, -2.75], [50, -3.0]];
+  var RANKS = [
+    { r: "S", min: 90, c: "var(--rank-s)" },
+    { r: "A", min: 80, c: "var(--rank-a)" },
+    { r: "B", min: 70, c: "var(--rank-b)" },
+    { r: "C", min: 60, c: "var(--rank-c)" },
+    { r: "D", min: -Infinity, c: "var(--rank-d)" }
+  ];
+  var EXAMPLE = { OFF: 96, DEF: 83, PAS: 85, DRI: 81, SHO: 92, SPE: 85, PHY: 75 };
+  var state = {};
+  PARAMS.forEach(function (k) { state[k] = EXAMPLE[k]; });
+
+  function grade(s) {
+    for (var i = 0; i < GRADES.length; i++) if (s >= GRADES[i][0]) return { g: GRADES[i][1], adj: GRADES[i][2] };
+    return { g: "–", adj: 0 };
+  }
+  function f3(n) { return (n < 0 ? "−" : "+") + Math.abs(n).toFixed(3); }
+  function cls(n) { return n > 0 ? "pos" : n < 0 ? "neg" : ""; }
+
+  function calc(v) {
+    var pick1 = v.OFF >= v.DEF ? "OFF" : "DEF";
+    var pick2 = "PAS", c2 = ["PAS", "DRI", "SHO", "SPE", "PHY"];
+    c2.forEach(function (k) { if (v[k] > v[pick2]) pick2 = k; });
+    var initial = (v[pick1] + v[pick2]) / 2;
+
+    var rows = MAIN.map(function (k) {
+      var g = grade(v[k]);
+      return { k: k, s: v[k], g: g.g, adj: g.adj, used: k !== pick1 && k !== pick2 };
+    });
+    var G = rows.reduce(function (a, r) { return a + (r.used ? r.adj : 0); }, 0);
+
+    var phyHigh = v.PHY >= 80; // A2 and above: normal Grade Adjustment
+    var pen = 0;
+    if (phyHigh) pen = grade(v.PHY).adj;
+    else for (var i = 0; i < PHY_PEN.length; i++) if (v.PHY >= PHY_PEN[i][0]) { pen = PHY_PEN[i][1]; break; }
+
+    var n96 = PARAMS.filter(function (k) { return v[k] >= 96; }).length;
+    var bonus = n96 >= 2 ? 1.75 : 0;
+
+    return { pick1: pick1, pick2: pick2, initial: initial, rows: rows, G: G,
+      phyHigh: phyHigh, pen: pen, n96: n96, bonus: bonus, overall: initial + G + pen + bonus };
+  }
+
+  function rankOf(x) { for (var i = 0; i < RANKS.length; i++) if (x >= RANKS[i].min) return i; return RANKS.length - 1; }
+
+  var rowsEl = document.getElementById("rows");
+  var opts = "";
+  for (var n = 99; n >= 0; n--) opts += '<option value="' + n + '">' + n + "</option>";
+  PARAMS.forEach(function (k) {
+    var d = document.createElement("div");
+    d.className = "row";
+    d.innerHTML =
+      '<div class="name"><span class="abbr">' + k + '</span><span class="th" id="nm-' + k + '"></span>' +
+      '<div class="meta" id="meta-' + k + '"></div></div>' +
+      '<div class="field"><input id="in-' + k + '" type="number" inputmode="numeric" min="0" max="99" step="1" aria-label="' + k + '">' +
+      '<select id="sel-' + k + '" aria-label="' + k + '">' + opts + "</select></div>" +
+      '<input id="rng-' + k + '" type="range" min="0" max="99" step="1" aria-label="' + k + ' slider">';
+    rowsEl.appendChild(d);
+  });
+
+  function clamp(x) { x = Math.round(Number(x)); if (!isFinite(x)) x = 0; return Math.max(0, Math.min(99, x)); }
+
+  PARAMS.forEach(function (k) {
+    var inp = document.getElementById("in-" + k);
+    var sel = document.getElementById("sel-" + k);
+    var rng = document.getElementById("rng-" + k);
+    inp.addEventListener("input", function () { state[k] = inp.value === "" ? 0 : clamp(inp.value); render(k); });
+    inp.addEventListener("blur", function () { inp.value = state[k]; });
+    sel.addEventListener("change", function () { state[k] = clamp(sel.value); render(); });
+    rng.addEventListener("input", function () { state[k] = clamp(rng.value); render(); });
+  });
+  document.getElementById("ex").addEventListener("click", function () { PARAMS.forEach(function (k) { state[k] = EXAMPLE[k]; }); render(); });
+  document.getElementById("clr").addEventListener("click", function () { PARAMS.forEach(function (k) { state[k] = 0; }); render(); });
+  function setLang(l) {
+    lang = l;
+    try { localStorage.setItem("ovr-lang", l); } catch (e) {}
+    render();
+  }
+  document.getElementById("l-th").addEventListener("click", function () { setLang("th"); });
+  document.getElementById("l-en").addEventListener("click", function () { setLang("en"); });
+
+  function render(typing) {
+    var t = T(), r = calc(state);
+    document.documentElement.lang = lang;
+    document.getElementById("l-th").setAttribute("aria-pressed", lang === "th");
+    document.getElementById("l-en").setAttribute("aria-pressed", lang === "en");
+    document.getElementById("title").textContent = t.title;
+    document.getElementById("enter").textContent = t.enter;
+    document.getElementById("ex").textContent = t.example;
+    document.getElementById("clr").textContent = t.clear;
+
+    PARAMS.forEach(function (k) {
+      var v = state[k];
+      document.getElementById("nm-" + k).textContent = t.names[k];
+      document.getElementById("sel-" + k).setAttribute("aria-label", t.pick + " " + k);
+      if (typing !== k) document.getElementById("in-" + k).value = v;
+      document.getElementById("sel-" + k).value = v;
+      document.getElementById("rng-" + k).value = v;
+      var g = grade(v);
+      var role = (k === r.pick1 || k === r.pick2) ? "Initial" : k === "PHY" ? "PHY" : "Grade";
+      document.getElementById("meta-" + k).innerHTML =
+        '<span class="chip grade">' + (g.g === "–" ? "&lt;50" : g.g) + "</span>" +
+        (role ? '<span class="chip ' + (role === "Initial" ? "use" : "") + '">' + role + "</span>" : "");
+    });
+
+    var ri = rankOf(r.overall), rk = RANKS[ri];
+    var badge = document.getElementById("badge");
+    badge.textContent = rk.r;
+    badge.style.setProperty("--rank-color", rk.c);
+    document.getElementById("ovr").textContent = r.overall.toFixed(3);
+    document.getElementById("stats").innerHTML = [
+      ["Initial", r.initial.toFixed(3), ""], ["Grade", f3(r.G), cls(r.G)], ["PHY", f3(r.pen), cls(r.pen)], ["Bonus", f3(r.bonus), cls(r.bonus)]
+    ].map(function (s) { return '<div class="stat"><span>' + s[0] + '</span><b class="' + s[2] + '">' + s[1] + "</b></div>"; }).join("");
+    document.getElementById("ladder").innerHTML = RANKS.map(function (x, i) {
+      return '<div class="' + (i === ri ? "on" : "") + '" style="--c:' + x.c + '"><strong>' + x.r + "</strong><span>" +
+        (x.min === -Infinity ? "&lt;" + RANKS[i - 1].min : "≥" + x.min) + "</span></div>";
+    }).join("");
+    document.getElementById("next").innerHTML = ri === 0 ? t.top : t.more((RANKS[ri - 1].min - r.overall).toFixed(3), RANKS[ri - 1].r);
+
+    function ck(ok, text, amt) {
+      return '<li><span class="mark ' + (ok ? "pos" : "neg") + '">' + (ok ? "✓" : "✗") + "</span><span>" + text + "</span>" +
+        (amt === undefined ? "<span></span>" : '<span class="amt ' + (ok ? "pos" : "") + '">' + f3(ok ? amt : 0) + "</span>") + "</li>";
+    }
+
+    var h = "";
+    h += '<div class="card step"><h3><span class="tag">1</span>Initial<span class="val">' + r.initial.toFixed(3) + "</span></h3>" +
+      '<p class="line">(' + r.pick1 + " <b>" + state[r.pick1] + "</b> + " + r.pick2 + " <b>" + state[r.pick2] + "</b>) ÷ 2</p></div>";
+
+    h += '<div class="card step"><h3><span class="tag">2</span>Grade<span class="val ' + cls(r.G) + '">' + f3(r.G) + "</span></h3>" +
+      '<div class="tablewrap"><table><thead><tr><th>Param</th><th class="num">' + t.cScore + "</th><th>" + t.cGrade + '</th><th class="num">' + t.cAdj + "</th></tr></thead><tbody>" +
+      r.rows.map(function (x) {
+        return '<tr class="' + (x.used ? "" : "skip") + '"><td>' + x.k + '</td><td class="num">' + x.s + "</td><td>" + x.g + '</td><td class="num ' + (x.used ? cls(x.adj) : "") + '">' + (x.used ? f3(x.adj) : t.usedInit) + "</td></tr>";
+      }).join("") + "</tbody></table></div></div>";
+
+    var phyLine = r.pen === 0 && !r.phyHigh ? "PHY <b>" + state.PHY + "</b> <small>" + t.phyNone + "</small>"
+      : r.phyHigh ? t.phyHigh(state.PHY, grade(state.PHY).g, f3(r.pen)) : t.phyLow(state.PHY, grade(state.PHY).g, f3(r.pen));
+    h += '<div class="card step"><h3><span class="tag">3</span>PHY Adjustment<span class="val ' + cls(r.pen) + '">' + f3(r.pen) + "</span></h3>" +
+      '<p class="line">' + phyLine + "</p></div>";
+
+    h += '<div class="card step"><h3><span class="tag">4</span>Bonus<span class="val ' + cls(r.bonus) + '">' + f3(r.bonus) + "</span></h3>" +
+      '<ul class="checks">' + ck(r.bonus > 0, t.bonusRule(r.n96), 1.75) + "</ul></div>";
+
+    document.getElementById("breakdown").innerHTML = h;
+  }
+  render();
+})();
+</script>
+</body>
+</html>
